@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Farm2Bag Chatbot</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Times New Roman', Times, serif;
+      background: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1350&q=80') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      background-color: rgba(0, 0, 0, 0.75);
+      border-radius: 15px;
+      width: 90%;
+      max-width: 600px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      color: white;
+    }
+
+    .chat-box {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding-right: 10px;
+    }
+
+    .chat-box::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .chat-box::-webkit-scrollbar-thumb {
+      background: #00cba9;
+      border-radius: 10px;
+    }
+
+    .message {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    .user {
+      text-align: right;
+      color: #00ffea;
+    }
+
+    .bot {
+      text-align: left;
+      color: #90ee90;
+    }
+
+    form {
+      display: flex;
+    }
+
+    input[type="text"] {
+      flex-grow: 1;
+      padding: 12px;
+      border-radius: 10px 0 0 10px;
+      border: none;
+      outline: none;
+      font-family: 'Times New Roman', Times, serif;
+    }
+
+    button, .mic-btn {
+      background-color: #00cba9;
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-family: 'Times New Roman', Times, serif;
+    }
+
+    .mic-btn {
+      border-radius: 0;
+    }
+
+    button {
+      border-radius: 0 10px 10px 0;
+    }
+
+    .mic-active {
+      background-color: red;
+    }
+
+    .action-btn {
+      background: linear-gradient(135deg, #00cba9, #007f73);
+      border: none;
+      color: white;
+      padding: 10px 14px;
+      margin: 5px 4px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+
+    .action-btn:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #00ffcc, #00a188);
+    }
+
+    .action-btn:active {
+      transform: scale(0.95);
+    }
+
+    .buy-now {
+      background: linear-gradient(135deg, #fca311, #ff5400);
+    }
+
+    .buy-now:hover {
+      background: linear-gradient(135deg, #ffd166, #ff8c42);
+    }
+
+    .whatsapp-float {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 999;
+    }
+
+    .whatsapp-float img {
+      width: 48px;
+      height: 48px;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-box" id="chat-box">
+      <div class="bot message">👨‍🌾 Welcome to Farm2Bag! How can I help you today?</div>
+    </div>
+    <form id="chat-form">
+      <input type="text" id="user-input" placeholder="Ask about products, orders, or anything..." autocomplete="off" aria-label="User input" />
+      <button type="button" class="mic-btn" id="mic-btn" aria-label="Voice input button">🎤</button>
+      <button type="submit" aria-label="Send message">Send</button>
+    </form>
+  </div>
+
+  <!-- WhatsApp Chat Bubble -->
+  <a href="https://wa.me/7305157325" 
+     class="whatsapp-float" 
+     target="_blank" 
+     title="Chat with us on WhatsApp">
+    <img src="https://img.icons8.com/color/48/000000/whatsapp--v1.png" alt="WhatsApp">
+  </a>
+
+  <script>
+    const chatForm = document.getElementById("chat-form");
+    const userInput = document.getElementById("user-input");
+    const chatBox = document.getElementById("chat-box");
+    const micBtn = document.getElementById("mic-btn");
+
+    // Autofocus input on load
+    window.onload = () => userInput.focus();
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const message = userInput.value.trim();
+      if (!message) return;
+      appendMessage("user", message);
+      userInput.value = "";
+
+      try {
+        const response = await fetch(`/get_product?product=${encodeURIComponent(message)}`);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+        appendBotMessage(data);
+      } catch (error) {
+        appendMessage("bot", "⚠️ Sorry, something went wrong. Please try again.");
+      }
+    });
+
+    function appendMessage(sender, message) {
+      const div = document.createElement("div");
+      div.className = `${sender} message`;
+      div.textContent = message;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function appendBotMessage(data) {
+      const div = document.createElement("div");
+      div.className = `bot message`;
+
+      if (data.product) {
+        div.innerHTML = `
+          <strong>${data.product}</strong><br>
+          💰 Price: ₹${data.price}<br>
+          📦 Stock: ${data.stock}<br>
+          🔗 <a href="${data.link}" target="_blank" style="color:#87CEFA;">View Product</a><br><br>
+          <button class="action-btn" onclick="handleAction('add to cart ${data.product}')">🛒 Add to Cart</button>
+          <button class="action-btn buy-now" onclick="handleAction('place order')">💳 Buy Now</button>
+        `;
+      } else {
+        div.textContent = data.message || "I'm not sure how to respond.";
+      }
+
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function handleAction(command) {
+      appendMessage("user", command);
+      try {
+        const response = await fetch(`/get_product?product=${encodeURIComponent(command)}`);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+        appendBotMessage(data);
+      } catch (error) {
+        appendMessage("bot", "⚠️ Action failed. Try again.");
+      }
+    }
+
+    // 🎤 Voice Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+
+      micBtn.addEventListener('click', () => {
+        if (micBtn.classList.contains('mic-active')) {
+          recognition.stop();
+          micBtn.classList.remove('mic-active');
+        } else {
+          recognition.start();
+          micBtn.classList.add('mic-active');
+        }
+      });
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        userInput.value = transcript;
+        recognition.stop();
+        micBtn.classList.remove('mic-active');
+      };
+
+      recognition.onerror = () => micBtn.classList.remove('mic-active');
+    } else {
+      micBtn.disabled = true;
+      micBtn.innerText = "❌";
+    }
+  </script>
+</body>
+</html>
