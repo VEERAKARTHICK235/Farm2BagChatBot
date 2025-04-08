@@ -5,7 +5,7 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 # Gemini API
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyAwRv53sBqgQuzK8GSjvcZ6UYZT3EcJKfA")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "Replace_Your_Gemini_API")
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 # Load products from CSV
